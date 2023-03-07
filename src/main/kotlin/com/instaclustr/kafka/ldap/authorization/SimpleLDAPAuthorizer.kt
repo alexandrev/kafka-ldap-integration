@@ -2,10 +2,7 @@ package com.instaclustr.kafka.ldap.authorization
 
 import com.instaclustr.kafka.ldap.Monitoring
 import kafka.security.authorizer.AclAuthorizer
-import org.apache.kafka.common.acl.AccessControlEntryFilter
-import org.apache.kafka.common.acl.AclBinding
-import org.apache.kafka.common.acl.AclBindingFilter
-import org.apache.kafka.common.acl.AclPermissionType
+import org.apache.kafka.common.acl.*
 import org.apache.kafka.common.resource.PatternType
 import org.apache.kafka.common.resource.ResourcePatternFilter
 import org.apache.kafka.common.resource.ResourceType
@@ -70,25 +67,39 @@ class SimpleLDAPAuthorizer : AclAuthorizer() {
                     // userAdd allow access control lists for resource and given operation
 
                     var aclBindingFilter = AclBindingFilter(
-                        ResourcePatternFilter(resourceType, resourcePattern, PatternType.MATCH),
+                        ResourcePatternFilter(resourceType, resourceName?.name(), PatternType.LITERAL),
                         AccessControlEntryFilter(
-                            principal?.name,
+                            null,
                             null,
                             action.operation(),
                             AclPermissionType.ALLOW
                         )
                     );
 
+                    var aclBindingFilterAll = AclBindingFilter(
+                        ResourcePatternFilter(resourceType, resourceName?.name(), PatternType.LITERAL),
+                        AccessControlEntryFilter(
+                            null,
+                            null,
+                            AclOperation.ALL,
+                            AclPermissionType.ALLOW
+                        )
+                    );
+
                     val sacls = acls(aclBindingFilter)
+                    val saclsAll = acls(aclBindingFilterAll)
+
 
                     // switch to kotlin set, making testing easier
                     val acls = mutableSetOf<AclBinding>()
                     sacls.forEach() { acls += it }
+                    saclsAll.forEach() { acls += it }
 
                     log.debug(
                         "$lOperation has following Allow ACLs for $lResource: ${
                             acls.map {
                                 it.entry().principal()
+                                
                             }
                         } uuid=$uuid"
                     )
@@ -100,7 +111,8 @@ class SimpleLDAPAuthorizer : AclAuthorizer() {
                     } else {
                         // verify membership, either cached or through LDAP - see GroupAuthorizer
                         val anonymous = KafkaPrincipal(KafkaPrincipal.USER_TYPE, "ANONYMOUS")
-                        val isAuthorized = GroupAuthorizer(uuid).use { it.authorize(principal ?: anonymous, acls) }
+
+                        val isAuthorized = GroupAuthorizer(uuid).use {  it.authorize(principal ?: anonymous, acls) }
 
                         when (isAuthorized) {
                             AuthorizationResult.ALLOWED -> log.debug("Authorization End - $authContext, status=authorized")

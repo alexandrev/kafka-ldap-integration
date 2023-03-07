@@ -33,7 +33,8 @@ object LDAPConfig {
         val grpUid: String,
         val grpAttrName: String,
         val usrCacheExpire: Int,
-        val grpCacheExpire: Int
+        val grpCacheExpire: Int,
+        val ldaps: Boolean
     )
 
     private val log = LoggerFactory.getLogger(LDAPConfig::class.java)
@@ -44,7 +45,7 @@ object LDAPConfig {
             "", "",
             "", "",
             "", "", "",
-            0, 0
+            0, 0, ldaps = false
     )
 
     init {
@@ -56,6 +57,7 @@ object LDAPConfig {
                         log.info("ldap configuration values: $it")
                     }
         } catch (e: Exception) {
+            e.printStackTrace();
             log.error("${e.message} - authentication and authorization will fail! ")
             emptyConfig
         }

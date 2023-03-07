@@ -22,15 +22,20 @@ abstract class LDAPBase protected constructor(config: LDAPConfig.Config) : AutoC
         connectTimeoutMillis = config.connTimeout
     }
 
-    // NB! - TrustAllTrustManager is too trusty, but good enough when inside corporate inner zone
-    protected val ldapConnection = LDAPConnection(
-            SSLUtil(TrustAllTrustManager()).createSSLSocketFactory(),
-            connectOptions)
+    protected var ldapConnection =  LDAPConnection(connectOptions)
 
 
     init {
         // initialize LDAP connection
         try {
+
+            if(config.ldaps){
+                // NB! - TrustAllTrustManager is too trusty, but good enough when inside corporate inner zone
+                ldapConnection = LDAPConnection(
+                    SSLUtil(TrustAllTrustManager()).createSSLSocketFactory(),
+                    connectOptions)
+            }
+
             measureTimeMillis { ldapConnection.connect(config.host, config.port) }
                     .also {
                         log.debug("Successfully connected to (${config.host},${config.port})")

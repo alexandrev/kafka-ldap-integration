@@ -25,8 +25,8 @@ class GroupAuthorizer(private val uuid: String) : AutoCloseable {
 
     fun authorize(principal: KafkaPrincipal, acls: Set<AclBinding>): AuthorizationResult =
             if (LDAPConfig.getByClasspath().toUserDNNodes(principal.name).let { userDNs ->
-                acls
-                        .map { it.entry().principal() }
+                 acls
+                        .map { it.entry().principal().replace("Group:","") }
                         .let { groups ->
                             // always check cache before ldap lookup
                             userGroupMembershipIsCached(groups, userDNs) || userGroupMembershipInLDAP(groups, userDNs)
